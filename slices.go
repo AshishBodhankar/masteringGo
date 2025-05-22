@@ -3,7 +3,128 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"unicode"
 )
+
+type sms struct {
+	id      string
+	content string
+	tags    []string
+}
+
+func tagMessages(messages []sms, tagger func(sms) []string) []sms {
+
+	for index, message := range messages {
+		messages[index].tags = tagger(message)
+	}
+	return messages
+}
+
+func tagger(msg sms) []string {
+
+	tags := []string{}
+
+	content := strings.ToLower(msg.content)
+
+	if strings.Contains(content, "urgent") {
+		tags = append(tags, "Urgent")
+	}
+	if strings.Contains(content, "sale") {
+		tags = append(tags, "Promo")
+	}
+	return tags
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+func isValidPassword(password string) (bool, error) {
+	if len(password) < 5 || len(password) >= 12 {
+		return false, errors.New("password length should be at least 5 characters long but no more " +
+			"than 12 characters")
+	}
+	oneUpper := false
+	isDigit := false
+	for _, char := range password {
+		if unicode.IsUpper(char) {
+			oneUpper = true
+		}
+		if unicode.IsDigit(char) {
+			isDigit = true
+		}
+	}
+	if !oneUpper {
+		return false, errors.New("password should contain at least one uppercase letter")
+	}
+	if !isDigit {
+		return false, errors.New("password should contain at least one digit")
+	}
+	return true, nil
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+type Message interface {
+	Type() string
+}
+
+type TextMessage struct {
+	Sender  string
+	Content string
+}
+
+func (tm TextMessage) Type() string {
+	return "text"
+}
+
+type MediaMessage struct {
+	Sender    string
+	MediaType string
+	Content   string
+}
+
+func (mm MediaMessage) Type() string {
+	return "media"
+}
+
+type LinkMessage struct {
+	Sender  string
+	URL     string
+	Content string
+}
+
+func (lm LinkMessage) Type() string {
+	return "link"
+}
+
+// Don't touch above this line
+
+func filterMessages(messages []Message, filterType string) []Message {
+	result := []Message{}
+	for _, message := range messages {
+		if message.Type() == filterType {
+			result = append(result, message)
+		}
+	}
+	return result
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+// Slice of Slices
+
+func createMatrix(rows, cols int) [][]int {
+	matrix := [][]int{}
+	for r := 0; r < rows; r++ {
+		row := []int{}
+		for c := 0; c < cols; c++ {
+			row = append(row, r*c)
+		}
+		matrix = append(matrix, row)
+	}
+	return matrix
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
 
 /* SYNTAX for RANGE in Golang
 
@@ -59,7 +180,10 @@ type cost struct {
 }
 
 func getDayCosts(costs []cost, day int) []float64 {
-	costValues := make([]float64, 0)
+
+	//costValues := make([]float64, 0)
+	costValues := []float64{}
+
 	for i := 0; i < len(costs); i++ {
 		if costs[i].day == day {
 			costValues = append(costValues, costs[i].value)
@@ -147,4 +271,23 @@ func main() {
 	cost4 := cost{day: 5, value: 13}
 	costs := []cost{cost1, cost2, cost3, cost4}
 	fmt.Println(getDayCosts(costs, 2))
+
+	matrix := createMatrix(5, 10)
+	fmt.Println(matrix)
+
+	tm := TextMessage{Sender: "Ashish", Content: "wassup my nigga!"}
+	mm := MediaMessage{Sender: "Vaishu", MediaType: ".mp4", Content: "sare Jahan se Acha! Hindustan hamara"}
+	lm := LinkMessage{Sender: "Aie", URL: "http://www.koogle.com", Content: "Nothing important"}
+	messages := []Message{tm, mm, lm}
+	fmt.Println(filterMessages(messages, "media"))
+
+	fmt.Println(isValidPassword("Escanor#123"))
+
+	messages2 := []sms{
+		{id: "001", content: "Urgent! Last chance to see!"},
+		{id: "002", content: "Big sale on all items!"},
+		// Additional messages...
+	}
+	taggedMessages := tagMessages(messages2, tagger)
+	fmt.Println(taggedMessages)
 }
